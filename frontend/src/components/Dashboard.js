@@ -25,7 +25,7 @@ const Dashboard = ({ onNavigate }) => {
       features: [
         'NPK analysis',
         'pH suitability scoring',
-        '8 crop types supported',
+        '22 crop types supported',
         'Beautiful crop images'
       ]
     }
@@ -88,7 +88,7 @@ const Dashboard = ({ onNavigate }) => {
             <div className="stat-label">Accuracy Rate</div>
           </div>
           <div className="stat-item">
-            <div className="stat-number">8+</div>
+            <div className="stat-number">22</div>
             <div className="stat-label">Crop Types</div>
           </div>
           <div className="stat-item">

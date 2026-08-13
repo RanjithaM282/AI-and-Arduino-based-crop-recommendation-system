@@ -120,15 +120,33 @@ const CropRecommendation = ({ onNavigate }) => {
     }
   };
 
+  // One photo per crop the ML model can predict
   const cropImages = {
-    rice: 'https://images.unsplash.com/photo-1586771107445-d3ca888129ff?w=400&h=300&fit=crop&crop=center',
-    maize: 'https://images.unsplash.com/photo-1551754655-cd27e38d2076?w=400&h=300&fit=crop&crop=center',
-    cotton: '/images/cotton.png',
-    sugarcane: '/images/sugarcane.png',
-    pulses: '/images/pulses.png'
+    apple: '/images/crops/apple.jpg',
+    banana: '/images/crops/banana.jpg',
+    blackgram: '/images/crops/blackgram.jpg',
+    chickpea: '/images/crops/chickpea.jpg',
+    coconut: '/images/crops/coconut.jpg',
+    coffee: '/images/crops/coffee.jpg',
+    cotton: '/images/crops/cotton.jpg',
+    grapes: '/images/crops/grapes.jpg',
+    jute: '/images/crops/jute.jpg',
+    kidneybeans: '/images/crops/kidneybeans.jpg',
+    lentil: '/images/crops/lentil.png',
+    maize: '/images/crops/maize.jpg',
+    mango: '/images/crops/mango.jpg',
+    mothbeans: '/images/crops/mothbeans.jpg',
+    mungbean: '/images/crops/mungbean.jpg',
+    muskmelon: '/images/crops/muskmelon.jpg',
+    orange: '/images/crops/orange.jpg',
+    papaya: '/images/crops/papaya.jpg',
+    pigeonpeas: '/images/crops/pigeonpeas.jpg',
+    pomegranate: '/images/crops/pomegranate.jpg',
+    rice: '/images/crops/rice.jpg',
+    watermelon: '/images/crops/watermelon.jpg'
   };
 
-  // Covers every crop the ML model can predict
+  // Shown on top of the photo, and as the fallback if an image is missing
   const cropEmojis = {
     apple: '🍎',
     banana: '🍌',
@@ -297,13 +315,13 @@ const CropRecommendation = ({ onNavigate }) => {
                     value={soilData.phosphorus}
                     onChange={handleInputChange}
                     min="0"
-                    max="100"
+                    max="150"
                     step="0.1"
                     required
-                    placeholder="0-100"
+                    placeholder="0-150"
                     className="form-input"
                   />
-                  <span className="input-hint">Typical range: 0-100 mg/kg</span>
+                  <span className="input-hint">Typical range: 0-150 mg/kg</span>
                 </div>
 
                 <div className="form-group">
@@ -332,14 +350,14 @@ const CropRecommendation = ({ onNavigate }) => {
                     name="ph"
                     value={soilData.ph}
                     onChange={handleInputChange}
-                    min="4"
+                    min="3.5"
                     max="10"
                     step="0.1"
                     required
-                    placeholder="4.0-10.0"
+                    placeholder="3.5-10.0"
                     className="form-input"
                   />
-                  <span className="input-hint">Typical range: 4.0-10.0</span>
+                  <span className="input-hint">Typical range: 3.5-10.0</span>
                 </div>
               </div>
 
