@@ -51,53 +51,30 @@ def suitability_label(score):
         return 'Moderate'
     return 'Poor'
 
-# ================= AI SUGGESTIONS =================
-# Using rule-based suggestions for reliability
+from ai_service import generate_ai_suggestions
+
 
 def get_crop_fertilizer_suggestions(crop_name, soil_data, environmental_data):
-    """Generate fertilizer and crop management suggestions using rule-based approach"""
-    print(f"🤖 Using rule-based crop suggestions for {crop_name}...")
-    
-    nitrogen = soil_data.get('nitrogen', 50)
-    phosphorus = soil_data.get('phosphorus', 35)
-    potassium = soil_data.get('potassium', 52)
-    ph = soil_data.get('ph', 6.5)
-    temperature = environmental_data.get('temperature', 25)
-    humidity = environmental_data.get('humidity', 60)
-    
-    # Rule-based suggestions based on soil conditions
-    suggestions = []
-    
-    if nitrogen < 40:
-        suggestions.append(f"Apply nitrogen-rich fertilizer to boost {crop_name} growth")
-    if phosphorus < 30:
-        suggestions.append(f"Add phosphorus fertilizer to support root development in {crop_name}")
-    if potassium < 40:
-        suggestions.append(f"Supplement potassium for improved {crop_name} disease resistance")
-    if ph < 6.0:
-        suggestions.append(f"Apply lime to raise soil pH for optimal {crop_name} growth")
-    elif ph > 7.5:
-        suggestions.append(f"Apply sulfur to lower soil pH for {crop_name}")
-    
-    if temperature > 30:
-        suggestions.append(f"Implement shade or mulching to protect {crop_name} from heat stress")
-    if humidity < 40:
-        suggestions.append(f"Increase irrigation frequency due to low humidity conditions")
-    
-    # Add general suggestions if we don't have enough
-    if len(suggestions) < 5:
-        suggestions.extend([
-            f"Monitor soil moisture levels regularly for {crop_name}",
-            f"Conduct soil testing before major fertilizer applications",
-            f"Follow local agricultural extension guidelines for {crop_name}",
-            f"Adjust fertilizer based on {crop_name} growth stage",
-            f"Implement crop rotation to maintain soil health"
-        ])
-    
-    return {
-        "status": "success",
-        "suggestions": suggestions[:5]  # Limit to 5 suggestions
-    }
+    """Generate real AI fertilizer and crop management suggestions."""
+    system_prompt = (
+        "You are an expert agronomist helping Indian farmers. "
+        "Give practical fertilizer and crop management advice. Keep each suggestion under 30 words."
+    )
+    user_prompt = f"""
+Recommended crop: {crop_name}
+Nitrogen (mg/kg): {soil_data.get('nitrogen')}
+Phosphorus (mg/kg): {soil_data.get('phosphorus')}
+Potassium (mg/kg): {soil_data.get('potassium')}
+Soil pH: {soil_data.get('ph')}
+Temperature (C): {environmental_data.get('temperature')}
+Humidity (%): {environmental_data.get('humidity')}
+Soil moisture (%): {environmental_data.get('soil_moisture')}
+
+Write exactly 5 numbered fertilizer and crop management recommendations for {crop_name}.
+Include specific actions for the soil and climate values above.
+"""
+
+    return generate_ai_suggestions(system_prompt, user_prompt, max_items=5)
 
 # ================= ARDUINO SENSOR DATA =================
 arduino_data = {

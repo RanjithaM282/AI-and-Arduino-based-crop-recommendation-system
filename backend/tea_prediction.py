@@ -10,9 +10,7 @@ from datetime import datetime
 app = Flask(__name__)
 CORS(app)
 
-# ================= HUGGING FACE API CONFIGURATION =================
-HUGGINGFACE_API_KEY = "hf_BXYl2JdJ7b8pkzFMmYQAWGdyb3FYX91E64SPXwTx8d7IAJt8rgrL"
-HUGGINGFACE_MODEL = "mistralai/Mistral-7B-Instruct-v0.3"
+from ai_service import generate_ai_suggestions
 
 # ================= TEA MODEL LOADING =================
 print("🍵 Loading Tea Prediction Model...")
@@ -79,53 +77,28 @@ def generate_tea_image(suggestion_text, location):
         }
 
 def get_tea_suggestions(prediction_value, location, weather_data, month):
-    """Generate dynamic context-aware tea growing suggestions"""
-    print(f"🤖 Generating dynamic tea suggestions...")
+    """Generate real AI tea growing suggestions."""
     location_name = f"{location['latitude']:.2f}°N, {location['longitude']:.2f}°E"
-    temp = weather_data.get('temperature', 25)
-    humidity = weather_data.get('humidity', 70)
-    
-    suggestions = []
-    
-    # Generate suggestions based on prediction value, weather, and location
-    if prediction_value < 15:
-        # Low production - focus on improvement
-        suggestions.append(f"Current prediction of {prediction_value:.1f} kg/hectare indicates soil nutrient deficiency. Apply organic compost and balanced NPK fertilizer (20:20:20) at 150kg/ha to boost tea plant health.")
-        suggestions.append(f"With temperature at {temp:.1f}°C and {humidity:.0f}% humidity, implement micro-irrigation to maintain optimal soil moisture. Tea plants require consistent moisture for healthy growth.")
-        suggestions.append(f"Conduct soil pH testing - tea thrives in pH 4.5-5.5. If pH is above 5.5, apply sulfur or aluminum sulfate to acidify soil for better nutrient uptake.")
-        suggestions.append(f"Schedule light pruning to remove dead and diseased branches. This improves air circulation and stimulates new growth, essential for low-yielding tea bushes.")
-        suggestions.append(f"Monitor for red spider mite and tea mosquito bug common in {month}th month. Apply neem-based organic pesticides at 2ml/liter for eco-friendly pest control.")
-    elif prediction_value < 25:
-        # Medium production - focus on optimization
-        suggestions.append(f"Prediction of {prediction_value:.1f} kg/hectare shows good potential. Apply nitrogen fertilizer (urea) at 100kg/ha during active growth to enhance leaf production and quality.")
-        suggestions.append(f"Current {temp:.1f}°C temperature is ideal for tea. Implement shade management using Grevillea trees to regulate temperature and reduce heat stress during peak afternoon hours.")
-        suggestions.append(f"With {humidity:.0f}% humidity, ensure proper drainage to prevent root rot. Install contour drains on slopes to manage water flow during heavy rainfall periods.")
-        suggestions.append(f"Schedule medium pruning to maintain bush height at 60-75cm. This optimal height facilitates easy harvesting and promotes lateral branching for increased yield.")
-        suggestions.append(f"Implement integrated nutrient management - combine chemical fertilizers with vermicompost at 5 tonnes/ha to improve soil structure and microbial activity.")
-    else:
-        # High production - focus on maintenance and quality
-        suggestions.append(f"Excellent prediction of {prediction_value:.1f} kg/hectare! Maintain current fertilization schedule. Apply potassium-rich fertilizer to enhance leaf quality and tea flavor profile.")
-        suggestions.append(f"At {temp:.1f}°C, ensure adequate irrigation during dry spells. Use drip irrigation to deliver 4-6 liters per plant daily for consistent high-quality leaf production.")
-        suggestions.append(f"High humidity ({humidity:.0f}%) increases disease risk. Implement proper spacing (1.2m x 0.75m) and regular weeding to improve air circulation and prevent fungal infections.")
-        suggestions.append(f"Schedule harvesting at 7-10 day intervals during peak season. Pluck two leaves and a bud for premium quality tea that commands better market prices.")
-        suggestions.append(f"Monitor market trends and consider value addition. Process fresh leaves into orthodox or CTC tea based on market demand to maximize revenue from high production.")
-    
-    # Add location-specific advice
-    if location['latitude'] > 25:
-        suggestions[0] = suggestions[0].replace("tea plants", "high-altitude tea plants").replace("tea thrives", "high-altitude tea thrives")
-        suggestions.append(f"Your location at {location_name} is ideal for premium tea. High altitude produces slow-growing leaves with concentrated flavor - market as specialty tea.")
-    
-    # Return suggestions without images
-    suggestions_list = []
-    for i, suggestion in enumerate(suggestions[:5]):
-        suggestions_list.append({
-            "text": suggestion
-        })
-    
-    print(f"✅ Dynamic suggestions generated: {len(suggestions_list)} recommendations")
+
+    system_prompt = (
+        "You are an expert tea plantation agronomist in India. "
+        "Give practical growing advice based on yield prediction and weather. Keep each suggestion under 35 words."
+    )
+    user_prompt = f"""
+Predicted tea yield: {prediction_value:.1f} kg/hectare
+Location: {location_name}
+Month: {month}
+Temperature (C): {weather_data.get('temperature', 25)}
+Humidity (%): {weather_data.get('humidity', 70)}
+
+Write exactly 5 numbered tea farming recommendations for this plantation.
+Include fertilizer, irrigation, pruning, pest control, and market advice where relevant.
+"""
+
+    result = generate_ai_suggestions(system_prompt, user_prompt, max_items=5)
     return {
-        "status": "success",
-        "suggestions": suggestions_list
+        **result,
+        "suggestions": [{"text": item} for item in result.get("suggestions", [])],
     }
 
 def get_rule_based_suggestions(prediction_value, location, weather_data, month):

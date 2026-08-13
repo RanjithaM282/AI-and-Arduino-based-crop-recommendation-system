@@ -700,6 +700,63 @@
   font-size: 1.1rem;
 }
 
+/* AI Suggestions Section */
+.ai-suggestions-section {
+  background: rgba(16, 185, 129, 0.08);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 30px;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  margin-top: 20px;
+}
+
+.ai-suggestions-section h2 {
+  font-size: 1.6rem;
+  color: white;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.ai-suggestions-subtitle {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 20px;
+}
+
+.ai-suggestions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.ai-suggestion-card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.ai-suggestion-number {
+  min-width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.25);
+  color: #6ee7b7;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.ai-suggestion-card p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1.5;
+}
+
 /* Price Prediction Section */
 .price-prediction-section {
   background: rgba(255, 255, 255, 0.08);

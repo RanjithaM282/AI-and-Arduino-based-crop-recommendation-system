@@ -1,5 +1,8 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import os
+import pickle
+import json
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
@@ -8,9 +11,34 @@ import requests
 app = Flask(__name__)
 CORS(app)
 
-# ================= HUGGING FACE API CONFIGURATION =================
-HUGGINGFACE_API_KEY = "hf_BXYl2JdJ7b8pkzFMmYQAWGdyb3FYX91E64SPXwTx8d7IAJt8rgrL"
-HUGGINGFACE_MODEL = "mistralai/Mistral-7B-Instruct-v0.3"
+# ================= ML MODEL LOADING =================
+print("🤖 Loading Crop Recommendation ML Model for price prediction...")
+
+MODEL_FEATURES = ['nitrogen', 'phosphorus', 'potassium', 'ph', 'temperature', 'humidity']
+crop_model_path = os.path.join(
+    os.path.dirname(__file__), '..', 'crop_recommendation_model', 'crop_model.pkl'
+)
+crop_model = None
+
+try:
+    with open(crop_model_path, 'rb') as model_file:
+        crop_model = pickle.load(model_file)
+    print(f"✅ Crop ML Model loaded: {crop_model_path}")
+    print(f"   Model type: {type(crop_model).__name__}")
+    print(f"   Crops known to model: {list(crop_model.classes_)}")
+except Exception as e:
+    print(f"❌ Crop ML Model load error: {e}")
+    crop_model = None
+
+
+def suitability_label(score):
+    if score >= 0.7:
+        return 'Good'
+    if score >= 0.4:
+        return 'Moderate'
+    return 'Poor'
+
+from ai_service import generate_ai_suggestions
 
 # ================= CROP DATA =================
 # Growth time (in months), average yield per acre, cost per acre
@@ -63,6 +91,146 @@ crop_data = {
         "cost_per_acre": 12000,
         "market_price_per_ton": 1800,
         "description": "Corn (Maize) is a fast-growing versatile crop"
+    },
+    "tea": {
+        "growth_time_months": 36,
+        "yield_per_ton_per_acre": 1.2,
+        "cost_per_acre": 35000,
+        "market_price_per_ton": 25000,
+        "description": "Tea is a high-value perennial crop suited to hilly, humid regions"
+    },
+    "apple": {
+        "growth_time_months": 60,
+        "yield_per_ton_per_acre": 8,
+        "cost_per_acre": 40000,
+        "market_price_per_ton": 45000,
+        "description": "Apple is a high-value orchard crop with strong export demand"
+    },
+    "banana": {
+        "growth_time_months": 9,
+        "yield_per_ton_per_acre": 15,
+        "cost_per_acre": 20000,
+        "market_price_per_ton": 12000,
+        "description": "Banana is a fast-growing fruit crop with steady local demand"
+    },
+    "blackgram": {
+        "growth_time_months": 3,
+        "yield_per_ton_per_acre": 0.8,
+        "cost_per_acre": 10000,
+        "market_price_per_ton": 7000,
+        "description": "Blackgram is a short-duration pulse crop"
+    },
+    "chickpea": {
+        "growth_time_months": 4,
+        "yield_per_ton_per_acre": 1.2,
+        "cost_per_acre": 11000,
+        "market_price_per_ton": 5500,
+        "description": "Chickpea is a popular protein-rich pulse crop"
+    },
+    "coconut": {
+        "growth_time_months": 84,
+        "yield_per_ton_per_acre": 6,
+        "cost_per_acre": 30000,
+        "market_price_per_ton": 8000,
+        "description": "Coconut is a long-term plantation crop with multiple revenue streams"
+    },
+    "coffee": {
+        "growth_time_months": 36,
+        "yield_per_ton_per_acre": 0.6,
+        "cost_per_acre": 45000,
+        "market_price_per_ton": 180000,
+        "description": "Coffee is a high-value plantation crop for suitable climates"
+    },
+    "grapes": {
+        "growth_time_months": 6,
+        "yield_per_ton_per_acre": 10,
+        "cost_per_acre": 35000,
+        "market_price_per_ton": 25000,
+        "description": "Grapes are a profitable horticulture crop with export potential"
+    },
+    "jute": {
+        "growth_time_months": 4,
+        "yield_per_ton_per_acre": 2.5,
+        "cost_per_acre": 9000,
+        "market_price_per_ton": 4500,
+        "description": "Jute is a fibre crop used in packaging and textiles"
+    },
+    "kidneybeans": {
+        "growth_time_months": 3,
+        "yield_per_ton_per_acre": 1.0,
+        "cost_per_acre": 10000,
+        "market_price_per_ton": 6000,
+        "description": "Kidney beans are a short-duration pulse crop"
+    },
+    "lentil": {
+        "growth_time_months": 4,
+        "yield_per_ton_per_acre": 0.9,
+        "cost_per_acre": 9500,
+        "market_price_per_ton": 6500,
+        "description": "Lentil is a nutritious pulse with stable market demand"
+    },
+    "mango": {
+        "growth_time_months": 48,
+        "yield_per_ton_per_acre": 8,
+        "cost_per_acre": 35000,
+        "market_price_per_ton": 20000,
+        "description": "Mango is a high-value fruit crop with strong domestic demand"
+    },
+    "mothbeans": {
+        "growth_time_months": 3,
+        "yield_per_ton_per_acre": 0.7,
+        "cost_per_acre": 9000,
+        "market_price_per_ton": 6500,
+        "description": "Moth beans are a drought-tolerant pulse crop"
+    },
+    "mungbean": {
+        "growth_time_months": 3,
+        "yield_per_ton_per_acre": 0.8,
+        "cost_per_acre": 9500,
+        "market_price_per_ton": 7000,
+        "description": "Mung bean is a quick-growing pulse crop"
+    },
+    "muskmelon": {
+        "growth_time_months": 3,
+        "yield_per_ton_per_acre": 12,
+        "cost_per_acre": 18000,
+        "market_price_per_ton": 8000,
+        "description": "Muskmelon is a seasonal fruit crop with good market prices"
+    },
+    "orange": {
+        "growth_time_months": 48,
+        "yield_per_ton_per_acre": 10,
+        "cost_per_acre": 32000,
+        "market_price_per_ton": 18000,
+        "description": "Orange is a citrus fruit crop with year-round demand"
+    },
+    "papaya": {
+        "growth_time_months": 9,
+        "yield_per_ton_per_acre": 20,
+        "cost_per_acre": 22000,
+        "market_price_per_ton": 6000,
+        "description": "Papaya is a fast-growing fruit crop"
+    },
+    "pigeonpeas": {
+        "growth_time_months": 5,
+        "yield_per_ton_per_acre": 1.1,
+        "cost_per_acre": 10500,
+        "market_price_per_ton": 5800,
+        "description": "Pigeon peas are a hardy pulse crop"
+    },
+    "pomegranate": {
+        "growth_time_months": 36,
+        "yield_per_ton_per_acre": 7,
+        "cost_per_acre": 38000,
+        "market_price_per_ton": 35000,
+        "description": "Pomegranate is a high-value horticulture crop"
+    },
+    "watermelon": {
+        "growth_time_months": 3,
+        "yield_per_ton_per_acre": 18,
+        "cost_per_acre": 16000,
+        "market_price_per_ton": 5000,
+        "description": "Watermelon is a seasonal fruit crop with quick returns"
     }
 }
 
@@ -74,7 +242,16 @@ crop_aliases = {
     "cotton": "cotton",
     "pulses": "pulses",
     "wheat": "wheat",
-    "rice": "rice"
+    "rice": "rice",
+    "tea": "tea",
+    "pigeonpeas": "pigeonpeas",
+    "pigeon peas": "pigeonpeas",
+    "black gram": "blackgram",
+    "mung bean": "mungbean",
+    "kidney beans": "kidneybeans",
+    "moth beans": "mothbeans",
+    "muskmelon": "muskmelon",
+    "water melon": "watermelon"
 }
 
 # ================= PRICE TREND DATA =================
@@ -96,9 +273,9 @@ def get_price_trend(crop_name):
     return trend
 
 # ================= AI INSIGHTS =================
-def get_ai_insights(crop_name, profit_data, price_trend):
-    """Generate dynamic context-aware investment insights with agricultural best practices"""
-    print(f"🤖 Generating dynamic insights for {crop_name}...")
+def _get_rule_based_insights(crop_name, profit_data, price_trend):
+    """Fallback insights when AI API is unavailable."""
+    print(f"🤖 Generating rule-based insights for {crop_name}...")
     
     crop_lower = crop_name.lower()
     profit_margin = profit_data['profit_margin']
@@ -223,14 +400,136 @@ def get_ai_insights(crop_name, profit_data, price_trend):
     # Add one seasonal insight
     insights.append(seasonal_insights[len(insights) % len(seasonal_insights)])
     
-    print(f"✅ Dynamic insights generated: {len(insights)} recommendations")
+    print(f"✅ Rule-based insights generated: {len(insights)} recommendations")
     return insights[:4]
 
+
+def get_ai_insights(crop_name, profit_data, price_trend, ml_prediction=None, input_data=None):
+    """Generate real AI investment insights."""
+    ml_text = "ML model not used for this crop"
+    if ml_prediction and ml_prediction.get("available"):
+        ml_text = (
+            f"ML suitability score: {ml_prediction.get('confidence_percent')}% "
+            f"({ml_prediction.get('suitability')}), "
+            f"yield multiplier: {ml_prediction.get('yield_multiplier')}"
+        )
+
+    soil_text = "Soil/sensor data not provided"
+    if input_data:
+        soil_text = json.dumps(input_data, indent=2)
+
+    system_prompt = (
+        "You are an expert agricultural economist and farm investment advisor in India. "
+        "Give practical, specific advice for farmers. Keep each insight under 35 words."
+    )
+    user_prompt = f"""
+Crop: {crop_name}
+Acres: {profit_data.get('acres')}
+Growth time (months): {profit_data.get('growth_time_months')}
+Predicted yield (tons): {profit_data.get('total_yield_tons')}
+Base yield (tons): {profit_data.get('base_yield_tons', profit_data.get('total_yield_tons'))}
+Total revenue (INR): {profit_data.get('total_revenue')}
+Total cost (INR): {profit_data.get('total_cost')}
+Profit (INR): {profit_data.get('profit')}
+Profit margin (%): {profit_data.get('profit_margin')}
+Market price (INR/ton): {profit_data.get('market_price_per_ton')}
+{ml_text}
+
+Field conditions:
+{soil_text}
+
+Write exactly 4 numbered investment and farming recommendations for this crop and field situation.
+Focus on profit improvement, risk reduction, and timing.
+"""
+
+    return generate_ai_suggestions(system_prompt, user_prompt, max_items=4)
+
+# ================= CROP LOOKUP =================
+def resolve_crop_key(crop_name):
+    """Normalize crop name using aliases."""
+    return crop_aliases.get(crop_name.lower(), crop_name.lower())
+
+
+def build_feature_vector(data):
+    """Build the ML feature vector from request data."""
+    missing = [feature for feature in MODEL_FEATURES if data.get(feature) is None]
+    if missing:
+        return None, missing
+
+    return np.array(
+        [float(data.get(feature)) for feature in MODEL_FEATURES]
+    ).reshape(1, -1), []
+
+
+def get_ml_prediction(crop_name, data):
+    """Run the trained crop model and return suitability for the requested crop."""
+    if crop_model is None:
+        return {
+            "available": False,
+            "message": "ML model not loaded"
+        }
+
+    features, missing = build_feature_vector(data)
+    if features is None:
+        return {
+            "available": False,
+            "message": f"Missing ML features: {missing}",
+            "required_features": MODEL_FEATURES
+        }
+
+    probabilities = crop_model.predict_proba(features)[0]
+    classes = [str(crop).lower() for crop in crop_model.classes_]
+    crop_key = resolve_crop_key(crop_name)
+
+    if crop_key not in classes:
+        return {
+            "available": False,
+            "message": f"Crop '{crop_name}' is not supported by the ML model",
+            "model_classes": [crop.title() for crop in classes]
+        }
+
+    crop_index = classes.index(crop_key)
+    confidence_score = float(probabilities[crop_index])
+    top_index = int(np.argmax(probabilities))
+
+    return {
+        "available": True,
+        "model_used": "machine_learning",
+        "model_type": type(crop_model).__name__,
+        "crop": crop_name.title(),
+        "confidence_score": round(confidence_score, 4),
+        "confidence_percent": round(confidence_score * 100, 1),
+        "suitability": suitability_label(confidence_score),
+        "yield_multiplier": round(0.5 + confidence_score * 0.5, 4),
+        "top_model_prediction": classes[top_index].title(),
+        "input_features": {
+            feature: float(data.get(feature)) for feature in MODEL_FEATURES
+        }
+    }
+
+
+def get_crop_details(crop_name):
+    """Return crop metadata, using the same fallback logic as profit calculation."""
+    crop_key = resolve_crop_key(crop_name)
+    crop = crop_data.get(crop_key)
+    if crop:
+        return crop
+
+    profit_data = calculate_profit(crop_name, 1)
+    return {
+        "growth_time_months": profit_data["growth_time_months"],
+        "yield_per_ton_per_acre": round(profit_data["total_yield_tons"], 2),
+        "cost_per_acre": profit_data["total_cost"],
+        "market_price_per_ton": profit_data["market_price_per_ton"],
+        "description": f"{crop_name} - using estimated values"
+    }
+
+
 # ================= PROFIT CALCULATION =================
-def calculate_profit(crop_name, acres=1):
-    """Calculate profit for a given crop"""
+def calculate_profit(crop_name, acres=1, ml_score=None):
+    """Calculate profit for a given crop, optionally adjusted by ML suitability score."""
     # Normalize crop name using aliases
-    crop_key = crop_aliases.get(crop_name.lower(), crop_name.lower())
+    crop_key = resolve_crop_key(crop_name)
     crop = crop_data.get(crop_key, {})
     
     # Fallback for unknown crops - use reasonable default values
@@ -250,7 +549,12 @@ def calculate_profit(crop_name, acres=1):
     market_price = crop["market_price_per_ton"]
     
     # Calculate total yield and revenue
-    total_yield = yield_per_acre * acres
+    base_yield = yield_per_acre * acres
+    yield_multiplier = 1.0
+    if ml_score is not None:
+        yield_multiplier = 0.5 + (float(ml_score) * 0.5)
+
+    total_yield = base_yield * yield_multiplier
     total_revenue = total_yield * market_price
     total_cost = cost_per_acre * acres
     
@@ -262,7 +566,10 @@ def calculate_profit(crop_name, acres=1):
         "crop": crop_name,
         "acres": acres,
         "growth_time_months": growth_time,
+        "base_yield_tons": round(base_yield, 2),
         "total_yield_tons": round(total_yield, 2),
+        "yield_multiplier": round(yield_multiplier, 4),
+        "ml_adjusted": ml_score is not None,
         "total_revenue": round(total_revenue, 2),
         "total_cost": round(total_cost, 2),
         "profit": round(profit, 2),
@@ -281,9 +588,38 @@ def predict_price():
         
         if not crop_name:
             return jsonify({"error": "crop_name is required"}), 400
+
+        # Run ML model prediction using soil + sensor features
+        ml_prediction = get_ml_prediction(crop_name, data)
+        ml_score = None
+        model_used = "static_estimates"
+
+        if ml_prediction.get("available"):
+            ml_score = ml_prediction["confidence_score"]
+            model_used = "machine_learning"
+            print(
+                f"🤖 ML prediction for {crop_name}: "
+                f"{ml_prediction['confidence_percent']}% ({ml_prediction['suitability']})"
+            )
+        elif data.get("ml_score") is not None:
+            ml_score = float(data["ml_score"])
+            model_used = "machine_learning"
+            ml_prediction = {
+                "available": True,
+                "model_used": "machine_learning",
+                "crop": crop_name.title(),
+                "confidence_score": round(ml_score, 4),
+                "confidence_percent": round(ml_score * 100, 1),
+                "suitability": suitability_label(ml_score),
+                "yield_multiplier": round(0.5 + ml_score * 0.5, 4),
+                "source": "crop_recommendation_response"
+            }
+            print(f"🤖 Using ML score from crop recommendation: {ml_score:.2%}")
+        else:
+            print(f"⚠️ ML prediction unavailable: {ml_prediction.get('message')}")
         
-        # Calculate profit
-        profit_data = calculate_profit(crop_name, acres)
+        # Calculate profit (yield adjusted by ML suitability when available)
+        profit_data = calculate_profit(crop_name, acres, ml_score=ml_score)
         
         if not profit_data:
             return jsonify({"error": f"Crop '{crop_name}' not found in database"}), 404
@@ -292,13 +628,21 @@ def predict_price():
         price_trend = get_price_trend(crop_name)
         
         # Get AI insights
-        ai_insights = get_ai_insights(crop_name, profit_data, price_trend)
+        ai_insights = get_ai_insights(
+            crop_name,
+            profit_data,
+            price_trend,
+            ml_prediction=ml_prediction if ml_prediction.get("available") else None,
+            input_data=ml_prediction.get("input_features") if ml_prediction.get("available") else None,
+        )
         
-        # Get crop details
-        crop_details = crop_data.get(crop_name.lower(), {})
+        # Get crop details (with alias + fallback support)
+        crop_details = get_crop_details(crop_name)
         
         return jsonify({
             "status": "success",
+            "model_used": model_used,
+            "ml_prediction": ml_prediction,
             "profit_data": profit_data,
             "price_trend": price_trend,
             "crop_details": crop_details,
