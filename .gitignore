@@ -1,2 +1,6 @@
 .env
 node_modules/
+__pycache__/
+frontend/build/static/
+frontend/build/index.html
+frontend/build/asset-manifest.json

@@ -121,26 +121,41 @@ const CropRecommendation = ({ onNavigate }) => {
   };
 
   const cropImages = {
-    wheat: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&h=300&fit=crop&crop=center',
     rice: 'https://images.unsplash.com/photo-1586771107445-d3ca888129ff?w=400&h=300&fit=crop&crop=center',
-    corn: 'https://images.unsplash.com/photo-1551754655-cd27e38d2076?w=400&h=300&fit=crop&crop=center',
+    maize: 'https://images.unsplash.com/photo-1551754655-cd27e38d2076?w=400&h=300&fit=crop&crop=center',
     cotton: '/images/cotton.png',
     sugarcane: '/images/sugarcane.png',
-    pulses: '/images/pulses.png',
-    vegetables: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&h=300&fit=crop&crop=center',
-    fruits: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=400&h=300&fit=crop&crop=center'
+    pulses: '/images/pulses.png'
   };
 
+  // Covers every crop the ML model can predict
   const cropEmojis = {
-    wheat: '🌾',
-    rice: '🌾',
-    corn: '🌽',
+    apple: '🍎',
+    banana: '🍌',
+    blackgram: '🫘',
+    chickpea: '🫘',
+    coconut: '🥥',
+    coffee: '☕',
     cotton: '☁️',
-    sugarcane: '🎋',
-    pulses: '🫘',
-    vegetables: '🥬',
-    fruits: '🍎'
+    grapes: '🍇',
+    jute: '🌿',
+    kidneybeans: '🫘',
+    lentil: '🫘',
+    maize: '🌽',
+    mango: '🥭',
+    mothbeans: '🫘',
+    mungbean: '🫘',
+    muskmelon: '🍈',
+    orange: '🍊',
+    papaya: '🫐',
+    pigeonpeas: '🫘',
+    pomegranate: '🫐',
+    rice: '🌾',
+    watermelon: '🍉'
   };
+
+  const cropImage = (name) => cropImages[String(name).toLowerCase()];
+  const cropEmoji = (name) => cropEmojis[String(name).toLowerCase()] || '🌱';
 
   const getSuitabilityColor = (suitability) => {
     switch(suitability) {
@@ -376,12 +391,15 @@ const CropRecommendation = ({ onNavigate }) => {
                 <h2>🏆 Top Recommendation</h2>
                 <div className="top-crop-card">
                   <div className="top-crop-image">
-                    <img 
-                      src={cropImages[recommendations.top_recommendation.toLowerCase()]} 
-                      alt={recommendations.top_recommendation}
-                    />
+                    {cropImage(recommendations.top_recommendation) && (
+                      <img 
+                        src={cropImage(recommendations.top_recommendation)} 
+                        alt={recommendations.top_recommendation}
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                    )}
                     <div className="crop-emoji">
-                      {cropEmojis[recommendations.top_recommendation.toLowerCase()]}
+                      {cropEmoji(recommendations.top_recommendation)}
                     </div>
                   </div>
                   <div className="top-crop-info">
@@ -421,12 +439,15 @@ const CropRecommendation = ({ onNavigate }) => {
                   {recommendations.crop_recommendations.map((crop, index) => (
                     <div key={index} className="crop-card">
                       <div className="crop-image">
-                        <img 
-                          src={cropImages[crop.name.toLowerCase()]} 
-                          alt={crop.name}
-                        />
+                        {cropImage(crop.name) && (
+                          <img 
+                            src={cropImage(crop.name)} 
+                            alt={crop.name}
+                            onError={(e) => { e.target.style.display = 'none'; }}
+                          />
+                        )}
                         <div className="crop-emoji">
-                          {cropEmojis[crop.name.toLowerCase()]}
+                          {cropEmoji(crop.name)}
                         </div>
                         <div className="crop-rank">#{index + 1}</div>
                       </div>

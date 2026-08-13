@@ -18,17 +18,38 @@ print("   Loading trained machine learning model for crop recommendation")
 crop_model_path = os.path.join(os.path.dirname(__file__), '..', 'crop_recommendation_model', 'crop_model.pkl')
 crop_model = None
 
+# Feature order the model was trained on (see crop_recommendation_model/train_crop_model.py).
+# Soil moisture is collected from the Arduino but is not a model feature: the training
+# data records rainfall, not soil moisture, so it is used for irrigation advice only.
+MODEL_FEATURES = ['nitrogen', 'phosphorus', 'potassium', 'ph', 'temperature', 'humidity']
+REQUIRED_INPUTS = MODEL_FEATURES + ['soil_moisture']
+MAX_RECOMMENDATIONS = 5
+
 try:
     with open(crop_model_path, 'rb') as f:
         crop_model = pickle.load(f)
     print(f"✅ Crop ML Model loaded: {crop_model_path}")
     print(f"   Model type: {type(crop_model)}")
+    if not hasattr(crop_model, 'classes_') or not hasattr(crop_model, 'predict_proba'):
+        raise ValueError(
+            'Loaded model is not a classifier with crop labels. '
+            'Retrain it with crop_recommendation_model/train_crop_model.py'
+        )
+    print(f"   Crops known to the model: {list(crop_model.classes_)}")
     if hasattr(crop_model, 'n_features_in_'):
         print(f"   Model expects {crop_model.n_features_in_} features")
 except Exception as e:
     print(f"❌ Crop ML Model load error: {e}")
     print("   System will not function without the ML model!")
     crop_model = None
+
+def suitability_label(score):
+    """Bucket a model probability into a human readable suitability rating"""
+    if score >= 0.7:
+        return 'Good'
+    if score >= 0.4:
+        return 'Moderate'
+    return 'Poor'
 
 # ================= AI SUGGESTIONS =================
 # Using rule-based suggestions for reliability
@@ -364,18 +385,12 @@ def crop_recommend():
         
         print(f"📊 Received data keys: {list(data.keys())}")
         
-        # Extract 7 features for crop model
-        required_features = [
-            'nitrogen', 'phosphorus', 'potassium', 'ph',
-            'temperature', 'humidity', 'soil_moisture'
-        ]
-        
-        # Validate all 7 features are present
-        missing_features = [f for f in required_features if f not in data]
+        # Validate all inputs are present
+        missing_features = [f for f in REQUIRED_INPUTS if f not in data]
         if missing_features:
             return jsonify({
                 'error': f'Missing required features for crop recommendation: {missing_features}',
-                'required_features': required_features,
+                'required_features': REQUIRED_INPUTS,
                 'received_features': list(data.keys()),
                 'status': 'error',
                 'arduino_status': arduino_connection_status
@@ -391,12 +406,10 @@ def crop_recommend():
                 'status': 'error'
             }), 400
         
-        # Create feature array in correct order
-        features = []
-        for feature in required_features:
-            features.append(float(data.get(feature)))
-        
-        features = np.array(features).reshape(1, -1)
+        # Create feature array in the order the model was trained on
+        features = np.array(
+            [float(data.get(feature)) for feature in MODEL_FEATURES]
+        ).reshape(1, -1)
         
         print(f"🔢 ML Model Input Shape: {features.shape}")
         print(f"🔢 ML Model Input Features: {features[0]}")
@@ -412,33 +425,25 @@ def crop_recommend():
         
         # Make prediction using ML model
         print("🤖 Making prediction with ML model...")
-        prediction = crop_model.predict(features)
-        print(f"🤖 ML Model Prediction: {prediction}")
-        
-        # Convert prediction to crop recommendation
-        # Assuming model returns crop class or probability scores
-        if len(prediction.shape) == 1:
-            # Single prediction
-            predicted_class = int(prediction[0])
-        else:
-            # Multiple predictions (probabilities)
-            predicted_class = int(np.argmax(prediction[0]))
-        
-        # Map class to crop name using model's actual classes if available
-        if hasattr(crop_model, 'classes_'):
-            crop_classes = list(crop_model.classes_)
-            print(f"📋 Model classes: {crop_classes}")
-        else:
-            # Fallback to common crop names
-            crop_classes = ['Wheat', 'Rice', 'Corn', 'Cotton', 'Sugarcane', 'Pulses', 'Vegetables']
-            print(f"📋 Using fallback crop classes: {crop_classes}")
-        
-        if predicted_class < len(crop_classes):
-            top_crop = str(crop_classes[predicted_class])
-        else:
-            top_crop = f'Unknown (Class {predicted_class})'
-        
-        print(f"✅ ML Model Recommended Crop: {top_crop} (Class: {predicted_class})")
+        probabilities = crop_model.predict_proba(features)[0]
+        crop_classes = [str(c) for c in crop_model.classes_]
+
+        ranked = sorted(
+            zip(crop_classes, probabilities), key=lambda pair: pair[1], reverse=True
+        )[:MAX_RECOMMENDATIONS]
+        ranked = [(name, score) for name, score in ranked if score > 0]
+
+        crop_recommendations = [
+            {
+                'name': name.title(),
+                'score': round(float(score), 4),
+                'suitability': suitability_label(float(score))
+            }
+            for name, score in ranked
+        ]
+
+        top_crop = crop_recommendations[0]['name']
+        print(f"✅ ML Model Recommended Crop: {top_crop} ({crop_recommendations[0]['score']:.2%})")
         
         # Generate AI fertilizer suggestions for recommended crop
         soil_data = {
@@ -459,14 +464,8 @@ def crop_recommend():
             'status': 'success',
             'model_used': 'machine_learning',
             'model_type': str(type(crop_model).__name__),
-            'prediction': int(predicted_class),
-            'crop_recommendations': [
-                {
-                    'name': top_crop,
-                    'score': 1.0,
-                    'suitability': 'Recommended by ML Model'
-                }
-            ],
+            'prediction': top_crop,
+            'crop_recommendations': crop_recommendations,
             'top_recommendation': top_crop,
             'input_data': {
                 'nitrogen_mg_kg': data.get('nitrogen'),
@@ -522,7 +521,8 @@ def health_check():
             'type': 'machine_learning',
             'model_type': str(type(crop_model).__name__) if crop_model else 'Not loaded',
             'loaded': crop_model is not None,
-            'features_expected': crop_model.n_features_in_ if crop_model and hasattr(crop_model, 'n_features_in_') else None
+            'features_expected': MODEL_FEATURES,
+            'crops': [str(c) for c in crop_model.classes_] if crop_model is not None else []
         },
         'arduino_status': arduino_connection_status,
         'timestamp': datetime.now().isoformat()
