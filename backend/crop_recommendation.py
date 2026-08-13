@@ -1,5 +1,7 @@
 import os
 import pickle
+import socket
+import sys
 import numpy as np
 import threading
 import time
@@ -237,6 +239,8 @@ def read_arduino():
                             if 'soil_moisture' in data:
                                 arduino_data['soil_moisture'] = data['soil_moisture']
 
+                            arduino_connection_status['connected'] = True
+                            arduino_connection_status['message'] = 'Arduino connected and receiving real data'
                             arduino_connection_status['last_update'] = datetime.now().isoformat()
 
                             print(f"✅ Arduino data updated: {arduino_data}")
@@ -530,8 +534,18 @@ def health_check():
     return jsonify(response)
 
 # ================= MAIN APPLICATION =================
+def port_in_use(port):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        return sock.connect_ex(('127.0.0.1', port)) == 0
+
+
 if __name__ == '__main__':
     print("🌱 Starting Crop Recommendation Server...")
+    if port_in_use(5001):
+        print("❌ Port 5001 is already in use - another backend is still running.")
+        print("🔧 Stop it first, otherwise the browser keeps talking to the old server.")
+        print("🔧 Windows: taskkill /F /IM python.exe   |  Linux/Mac: pkill -f crop_recommendation.py")
+        sys.exit(1)
     init_arduino()
     print("🌐 Server starting on http://127.0.0.1:5001")
     print("🌐 Crop Recommendation endpoint: POST /crop-recommend")
