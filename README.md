@@ -1,246 +1,104 @@
-# Tea Production Prediction System
+# AI & Arduino Based Crop Recommendation System
 
-A full-stack Machine Learning web application that predicts tea production (in MKgs) based on real-time weather data and geographic location.
+A full-stack smart agriculture platform that combines **Machine Learning**, **Arduino sensor data**, and **AI-powered suggestions** to help farmers choose crops, predict yield/profit, and manage tea plantations.
 
-## 🌟 Features
+## Features
 
-- **Interactive Map**: Click anywhere on the map to select a location
-- **GPS Location**: Automatic location detection using browser's geolocation
-- **Real-time Weather**: Fetches current weather data from OpenWeather API
-- **ML Prediction**: Uses a trained regression model to predict tea production
-- **Professional UI**: Modern, responsive design with real-time feedback
+- **Crop Recommendation (ML)** — Recommends the best crop using soil NPK, pH, temperature, and humidity from Arduino sensors
+- **Price & Profit Prediction (ML)** — Uses the trained crop model to adjust yield and calculate profit for recommended crops
+- **Tea Production Prediction (ML)** — Predicts tea yield based on location, month, and weather data
+- **Real AI Suggestions (Groq)** — Live fertilizer, investment, and farming tips powered by Llama 3.1 via Groq API
+- **Arduino Integration** — Real-time temperature, humidity, and soil moisture from COM port
+- **Modern React UI** — Dashboard with crop images, charts, and interactive maps
 
-## 🏗️ Architecture
+## Architecture
 
 ```
-├── backend/                 # Flask API server
-│   ├── app.py              # Main API application
-│   ├── requirements.txt    # Python dependencies
-│   └── .env.example        # Environment variables template
-├── frontend/               # React web application
-│   ├── src/
-│   │   ├── App.js          # Main React component
-│   │   ├── App.css         # Styling
-│   │   ├── index.js        # Entry point
-│   │   └── index.css       # Global styles
-│   ├── public/
-│   │   └── index.html      # HTML template
-│   └── package.json        # Node.js dependencies
-└── mega_project copy/      # ML model and training data
-    ├── model.pkl           # Trained ML model
-    ├── my_data.csv         # Training dataset
-    └── training.py         # Model training script
+├── backend/
+│   ├── crop_recommendation.py   # Port 5001 — ML crop recommendation + Arduino
+│   ├── price_prediction.py      # Port 5003 — ML profit analysis + AI insights
+│   ├── tea_prediction.py        # Port 5002 — Tea yield prediction + AI tips
+│   ├── ai_service.py            # Shared Groq / HuggingFace / OpenAI service
+│   ├── requirements.txt
+│   └── .env.example
+├── frontend/                    # React app (port 3000)
+├── crop_recommendation_model/
+│   ├── crop_model.pkl           # RandomForestClassifier (22 crops)
+│   └── crop_recommendation_dataset.csv
+└── hardware/
+    └── arduino_final_code.ino   # Arduino sensor firmware
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
-### Prerequisites
+### 1. Backend setup
 
-- Python 3.8+
-- Node.js 14+
-- OpenWeather API key (free from [OpenWeather](https://openweathermap.org/api))
-
-### Backend Setup
-
-1. **Navigate to backend directory:**
-   ```bash
-   cd backend
-   ```
-
-2. **Create virtual environment:**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Set up environment variables:**
-   ```bash
-   cp .env.example .env
-   # Edit .env and add your OpenWeather API key
-   ```
-
-5. **Start the backend server:**
-   ```bash
-   python app.py
-   ```
-
-   The API will be available at `http://localhost:5000`
-
-### Frontend Setup
-
-1. **Navigate to frontend directory:**
-   ```bash
-   cd frontend
-   ```
-
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-
-3. **Start the development server:**
-   ```bash
-   npm start
-   ```
-
-   The application will be available at `http://localhost:3000`
-
-## 📡 API Endpoints
-
-### POST /predict
-
-Predicts tea production for given coordinates.
-
-**Request:**
-```json
-{
-  "latitude": 26.5,
-  "longitude": 92.7
-}
+```bash
+cd backend
+pip install -r requirements.txt
+copy .env.example .env
 ```
 
-**Response:**
-```json
-{
-  "location": {
-    "latitude": 26.5,
-    "longitude": 92.7
-  },
-  "weather": {
-    "temperature": 22.5,
-    "humidity": 65.0,
-    "rainfall": 2.1
-  },
-  "prediction": {
-    "expected_tea_production_mkgs": 35.67
-  }
-}
-```
-
-### GET /health
-
-Health check endpoint.
-
-**Response:**
-```json
-{
-  "status": "healthy",
-  "model_loaded": true,
-  "api_key_configured": true
-}
-```
-
-## 🧠 ML Model Features
-
-The model uses the following engineered features:
-
-- **Temperature_C**: Current temperature in Celsius
-- **Precipitation_mm_day**: Daily rainfall in millimeters
-- **Humidity_Percent**: Relative humidity percentage
-- **Solar_Radiation_MJ_m2_day**: Solar radiation (default: 15.0)
-- **Latitude**: Geographic latitude
-- **Longitude**: Geographic longitude
-- **Elevation_m**: Elevation in meters (default: 120.0)
-- **Month_Sin/Month_Cos**: Cyclical month encoding
-- **Heat_Index**: Temperature + 0.1 × Humidity
-- **Temp_Humidity**: Temperature × Humidity
-- **Rainfall_Humidity**: Rainfall × Humidity
-- **Temp_Solar**: Temperature × Solar Radiation
-- **Prev_Month_Production**: Previous month production (default: 30.0)
-- **Prev_2Month_Production**: Production from 2 months ago (default: 30.0)
-- **Rolling_3Month_Avg**: 3-month rolling average (default: 30.0)
-- **State_Encoded**: State encoding (default: 0)
-
-## 🌤️ Weather Data
-
-The application fetches real-time weather data from OpenWeather API:
-
-- **Temperature**: Current temperature in Celsius
-- **Humidity**: Relative humidity percentage
-- **Rainfall**: Precipitation data (1h or 3h averages)
-
-If weather data is unavailable, the system uses default values to ensure predictions are always possible.
-
-## 🎨 UI Components
-
-### Interactive Map
-- Powered by Leaflet.js and OpenStreetMap
-- Click to select any location worldwide
-- Shows selected coordinates
-- Zoom and pan controls
-
-### Location Selection
-- **Map Click**: Click anywhere on the map
-- **GPS Button**: Automatic location detection
-- **Coordinate Display**: Shows selected lat/lng
-
-### Results Display
-- **Weather Card**: Current conditions at selected location
-- **Prediction Card**: Expected tea production in MKgs
-- **Loading States**: Visual feedback during API calls
-- **Error Handling**: User-friendly error messages
-
-## 🔧 Configuration
-
-### Environment Variables
-
-Create a `.env` file in the backend directory:
+Add your API keys to `.env`:
 
 ```env
-OPENWEATHER_API_KEY=your_actual_api_key_here
+GROQ_API_KEY=your_groq_api_key_here
+OPENWEATHER_API_KEY=your_openweather_key_here
 ```
 
-### Model Path
+Start all three servers (in separate terminals):
 
-The app automatically looks for the model at:
-```
-../mega_project copy/model.pkl
-```
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-1. **CORS Errors**: Ensure backend is running on port 5000
-2. **Weather API Failures**: Check OpenWeather API key is valid
-3. **Model Loading Errors**: Verify model.pkl exists and is accessible
-4. **Location Not Working**: Enable browser location permissions
-
-### Health Check
-
-Test the backend health:
 ```bash
-curl http://localhost:5000/health
+python crop_recommendation.py   # http://127.0.0.1:5001
+python tea_prediction.py        # http://127.0.0.1:5002
+python price_prediction.py      # http://127.0.0.1:5003
 ```
 
-## 📱 Browser Support
+### 2. Frontend setup
 
-- Chrome 60+
-- Firefox 55+
-- Safari 12+
-- Edge 79+
+```bash
+cd frontend
+npm install
+npm start                       # http://localhost:3000
+```
 
-## 🤝 Contributing
+### 3. Arduino
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+- Upload `hardware/arduino_final_code.ino` to your Arduino
+- Connect via USB (default COM3, 9600 baud)
+- Sensors: DHT11 (temp/humidity), soil moisture on A0
 
-## 📄 License
+## API Endpoints
 
-This project is licensed under the MIT License.
+| Service | Port | Endpoint | Description |
+|---------|------|----------|-------------|
+| Crop | 5001 | `POST /crop-recommend` | ML crop recommendation |
+| Crop | 5001 | `GET /sensor` | Arduino sensor data |
+| Tea | 5002 | `POST /tea-predict` | Tea yield prediction |
+| Price | 5003 | `POST /price-predict` | ML profit + AI insights |
 
-## 🙏 Acknowledgments
+## ML Models
 
-- OpenWeather API for weather data
-- Leaflet.js for interactive maps
-- React for the frontend framework
-- Flask for the backend API
-- scikit-learn for machine learning
+| Model | File | Purpose |
+|-------|------|---------|
+| Crop Classifier | `crop_recommendation_model/crop_model.pkl` | Recommends best crop from 22 options |
+| Tea Regressor | `backend/model.pkl` | Predicts tea production (kg/hectare) |
+
+## AI Suggestions
+
+All suggestion text is generated by **real AI** (Groq Llama 3.1 by default). Configure in `backend/.env`:
+
+```env
+AI_PROVIDER=auto
+GROQ_API_KEY=your_key
+```
+
+Get a free key at [console.groq.com](https://console.groq.com/).
+
+## GitHub
+
+**Repository:** [RanjithaM282/AI-and-Arduino-based-crop-recommendation-system](https://github.com/RanjithaM282/AI-and-Arduino-based-crop-recommendation-system)
+
+## License
+
+MIT License
