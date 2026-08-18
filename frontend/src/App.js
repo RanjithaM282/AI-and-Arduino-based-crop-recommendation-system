@@ -1,56 +1,49 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
 
 // Import components
-import Dashboard from './components/Dashboard';
-import TeaPrediction from './components/TeaPrediction';
-import CropRecommendation from './components/CropRecommendation';
+import Navbar from './components/Navbar/Navbar';
 
-const DEFAULT_VIEW = 'dashboard';
+// Import pages
+import HomePage from './pages/HomePage';
+import MyFarm from './pages/MyFarm';
+import CropRecommendation from './components/CropRecommendation';
+import MarketPrices from './pages/MarketPrices';
+import CropCalendar from './pages/CropCalendar';
+import FarmActivities from './pages/FarmActivities';
+import CropHealth from './pages/CropHealth';
+import Weather from './pages/Weather';
+import ProfitAnalytics from './pages/ProfitAnalytics';
+import SellProduce from './pages/SellProduce';
+import FarmerAssistant from './pages/FarmerAssistant';
+import Profile from './pages/Profile';
+import Help from './pages/Help';
 
 function App() {
-  const [currentView, setCurrentView] = useState(
-    () => window.history.state?.view || DEFAULT_VIEW
-  );
-
-  // Keep the browser history in sync with the current view so the browser's
-  // back button returns to the previous view instead of leaving the app
-  useEffect(() => {
-    window.history.replaceState({ view: currentView }, '');
-
-    const handlePopState = (event) => {
-      setCurrentView(event.state?.view || DEFAULT_VIEW);
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const navigate = useCallback((view) => {
-    if (view !== window.history.state?.view) {
-      window.history.pushState({ view }, '');
-    }
-    setCurrentView(view);
-  }, []);
-
-  const renderCurrentView = () => {
-    switch (currentView) {
-      case 'dashboard':
-        return <Dashboard onNavigate={navigate} />;
-      case 'tea-prediction':
-        return <TeaPrediction onNavigate={navigate} />;
-      case 'crop-recommendation':
-        return <CropRecommendation onNavigate={navigate} />;
-      default:
-        return <Dashboard onNavigate={navigate} />;
-    }
-  };
-
   return (
-    <div className="App">
-      {renderCurrentView()}
-    </div>
+    <Router>
+      <div className="App">
+        <Navbar />
+        <main className="main-content">
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/my-farm" element={<MyFarm />} />
+            <Route path="/crop-recommendation" element={<CropRecommendation />} />
+            <Route path="/market-prices" element={<MarketPrices />} />
+            <Route path="/crop-calendar" element={<CropCalendar />} />
+            <Route path="/farm-activities" element={<FarmActivities />} />
+            <Route path="/crop-health" element={<CropHealth />} />
+            <Route path="/weather" element={<Weather />} />
+            <Route path="/profit-analytics" element={<ProfitAnalytics />} />
+            <Route path="/sell-produce" element={<SellProduce />} />
+            <Route path="/farmer-assistant" element={<FarmerAssistant />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/help" element={<Help />} />
+          </Routes>
+        </main>
+      </div>
+    </Router>
   );
 }
 
